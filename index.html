@@ -19,6 +19,7 @@
         </header>
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <!-- Form Section -->
             <div class="bg-white p-6 rounded-lg shadow-md h-fit border border-slate-200 xl:col-span-1 sticky top-6">
                 <h2 id="form-title" class="text-xl font-semibold mb-4 text-slate-700">Add New Milestone</h2>
                 <form id="milestone-form" class="space-y-4">
@@ -41,3 +42,351 @@
                             <select id="team" class="w-full border rounded p-2 bg-slate-50" required>
                                 <option value="Marketing">Marketing</option>
                                 <option value="Operations">Operations</option>
+                                <option value="Customer Success">Customer Success</option>
+                                <option value="Sales">Sales</option>
+                                <option value="Customer Support">Customer Support</option>
+                                <option value="Finance">Finance</option>
+                                <option value="Development">Development</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Milestone Name</label>
+                        <input type="text" id="milestone" class="w-full border rounded p-2 bg-slate-50" placeholder="e.g., Deploy AI Chatbot" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-blue-800 mb-1">Application Name</label>
+                        <input type="text" id="app" class="w-full border-2 border-blue-200 rounded p-2 bg-blue-50" placeholder="e.g., Intercom Fin, ChatGPT Enterprise" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Description</label>
+                        <textarea id="description" class="w-full border rounded p-2 bg-slate-50 text-sm" rows="2" placeholder="What does this implementation entail?" required></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-emerald-800 mb-1">Purpose / ROI</label>
+                        <textarea id="purpose" class="w-full border-2 border-emerald-200 rounded p-2 bg-emerald-50 text-sm" rows="2" placeholder="Why are we doing this? What is the core objective?" required></textarea>
+                    </div>
+
+                    <div class="border p-4 rounded bg-slate-50 space-y-3">
+                        <h3 class="text-sm font-bold border-b pb-1">Resources & Links</h3>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Custom Resource Tags (Comma separated)</label>
+                            <input type="text" id="resource-tags" class="w-full border rounded p-2 text-sm bg-white" placeholder="e.g., Video Tutorial, PDF Guide, Infographic">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Resource Links (Paste URLs, one per line)</label>
+                            <textarea id="resource-links" class="w-full border rounded p-2 bg-white text-sm" rows="2" placeholder="https://youtube.com/...&#10;https://drive.google.com/..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 border p-3 rounded bg-slate-50">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-bold mb-2">Metrics Tracking</label>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Success Tracker (%)</label>
+                            <input type="number" id="progress" class="w-full border rounded p-2 bg-white" min="0" max="100" value="0" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Time Saved per Month</label>
+                            <div class="flex">
+                                <input type="number" id="time-saved-val" class="w-1/2 border border-r-0 rounded-l p-2 bg-white" min="0" value="0" required>
+                                <select id="time-saved-unit" class="w-1/2 border rounded-r p-2 bg-white text-xs">
+                                    <option value="Hours">Hours</option>
+                                    <option value="Minutes">Minutes</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 pt-2">
+                        <button type="submit" id="submit-btn" class="w-full bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700 transition shadow-md">
+                            Add Milestone
+                        </button>
+                        <button type="button" id="cancel-edit-btn" onclick="cancelEdit()" class="hidden w-1/3 bg-slate-300 text-slate-700 font-semibold py-2 rounded hover:bg-slate-400 transition">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Team Sections Display -->
+            <div class="xl:col-span-2 space-y-8" id="team-sections-container">
+                <div id="empty-state" class="text-center text-slate-500 mt-8 bg-white p-8 rounded-lg shadow border border-slate-200 hidden">
+                    No milestones added yet. Start planning by adding one to the left!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let milestones = JSON.parse(localStorage.getItem('aiMilestonesDataV4')) || [];
+        let editingId = null;
+
+        const teamConfig = {
+            "Marketing": { bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-900", bar: "bg-rose-400" },
+            "Operations": { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-900", bar: "bg-amber-400" },
+            "Customer Success": { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-900", bar: "bg-emerald-400" },
+            "Sales": { bg: "bg-sky-50", border: "border-sky-200", text: "text-sky-900", bar: "bg-sky-400" },
+            "Customer Support": { bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-900", bar: "bg-violet-400" },
+            "Finance": { bg: "bg-cyan-50", border: "border-cyan-200", text: "text-cyan-900", bar: "bg-cyan-400" },
+            "Development": { bg: "bg-fuchsia-50", border: "border-fuchsia-200", text: "text-fuchsia-900", bar: "bg-fuchsia-400" }
+        };
+
+        const monthOrder = ["June 2026", "July 2026", "August 2026", "September 2026", "October 2026", "November 2026", "December 2026"];
+
+        const form = document.getElementById('milestone-form');
+        const container = document.getElementById('team-sections-container');
+        const emptyState = document.getElementById('empty-state');
+        const formTitle = document.getElementById('form-title');
+        const submitBtn = document.getElementById('submit-btn');
+        const cancelBtn = document.getElementById('cancel-edit-btn');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const rawTags = document.getElementById('resource-tags').value;
+            const tagsArray = rawTags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+
+            const rawLinks = document.getElementById('resource-links').value;
+            const linksArray = rawLinks.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+            const milestoneData = {
+                id: editingId ? editingId : Date.now(),
+                month: document.getElementById('month').value,
+                team: document.getElementById('team').value,
+                milestone: document.getElementById('milestone').value,
+                app: document.getElementById('app').value,
+                description: document.getElementById('description').value,
+                purpose: document.getElementById('purpose').value,
+                resourceTags: tagsArray,
+                resourceLinks: linksArray,
+                progress: document.getElementById('progress').value,
+                timeSavedVal: document.getElementById('time-saved-val').value,
+                timeSavedUnit: document.getElementById('time-saved-unit').value
+            };
+
+            if (editingId) {
+                const index = milestones.findIndex(m => m.id === editingId);
+                milestones[index] = milestoneData;
+                cancelEdit();
+            } else {
+                milestones.push(milestoneData);
+                resetFormFields();
+            }
+
+            saveData();
+            renderSections();
+        });
+
+        function resetFormFields() {
+            form.reset();
+            document.getElementById('progress').value = 0;
+            document.getElementById('time-saved-val').value = 0;
+        }
+
+        function saveData() {
+            localStorage.setItem('aiMilestonesDataV4', JSON.stringify(milestones));
+        }
+
+        window.editMilestone = function(id) {
+            const item = milestones.find(m => m.id === id);
+            if(!item) return;
+
+            editingId = id;
+            formTitle.innerText = "Edit Milestone";
+            submitBtn.innerText = "Update Milestone";
+            submitBtn.classList.replace('bg-blue-600', 'bg-emerald-600');
+            submitBtn.classList.replace('hover:bg-blue-700', 'hover:bg-emerald-700');
+            cancelBtn.classList.remove('hidden');
+
+            document.getElementById('month').value = item.month;
+            document.getElementById('team').value = item.team;
+            document.getElementById('milestone').value = item.milestone;
+            document.getElementById('app').value = item.app;
+            document.getElementById('description').value = item.description;
+            document.getElementById('purpose').value = item.purpose || "";
+            document.getElementById('resource-tags').value = (item.resourceTags || []).join(', ');
+            document.getElementById('resource-links').value = (item.resourceLinks || []).join('\n');
+            document.getElementById('progress').value = item.progress;
+            document.getElementById('time-saved-val').value = item.timeSavedVal || 0;
+            document.getElementById('time-saved-unit').value = item.timeSavedUnit || "Hours";
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.cancelEdit = function() {
+            editingId = null;
+            formTitle.innerText = "Add New Milestone";
+            submitBtn.innerText = "Add Milestone";
+            submitBtn.classList.replace('bg-emerald-600', 'bg-blue-600');
+            submitBtn.classList.replace('hover:bg-emerald-700', 'hover:bg-blue-700');
+            cancelBtn.classList.add('hidden');
+            resetFormFields();
+        }
+
+        window.deleteMilestone = function(id) {
+            if(confirm("Are you sure you want to delete this milestone?")) {
+                milestones = milestones.filter(m => m.id !== id);
+                if(editingId === id) cancelEdit();
+                saveData();
+                renderSections();
+            }
+        }
+
+        function renderSections() {
+            Array.from(container.children).forEach(child => {
+                if(child.id !== 'empty-state') child.remove();
+            });
+            
+            if (milestones.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            const grouped = {};
+            Object.keys(teamConfig).forEach(team => grouped[team] = []);
+
+            milestones.forEach(m => {
+                if(grouped[m.team]) grouped[m.team].push(m);
+            });
+
+            Object.keys(grouped).forEach(teamName => {
+                const teamMilestones = grouped[teamName];
+                if(teamMilestones.length === 0) return;
+
+                teamMilestones.sort((a, b) => monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month));
+                const style = teamConfig[teamName];
+                
+                const section = document.createElement('div');
+                section.className = `${style.bg} border ${style.border} rounded-lg shadow-sm overflow-hidden mb-6`;
+
+                const header = document.createElement('div');
+                header.className = `p-4 border-b ${style.border} font-bold text-xl ${style.text} flex justify-between items-center bg-white/50`;
+                header.innerHTML = `<span>${teamName} Team</span> <span class="text-sm font-normal bg-white px-3 py-1 rounded-full shadow-sm border ${style.border}">${teamMilestones.length} Tasks</span>`;
+                section.appendChild(header);
+
+                const listWrapper = document.createElement('div');
+                listWrapper.className = "p-4 space-y-6";
+                
+                teamMilestones.forEach((item, index) => {
+                    const taskNumber = index + 1;
+                    
+                    const resourceBadges = (item.resourceTags && item.resourceTags.length > 0) 
+                        ? item.resourceTags.map(r => `<span class="inline-block bg-white border border-gray-300 text-gray-700 text-xs px-2 py-1 rounded-md mr-2 mt-1 shadow-sm">${r}</span>`).join('')
+                        : '<span class="text-xs text-gray-400 italic">No tags</span>';
+
+                    const linkElements = (item.resourceLinks && item.resourceLinks.length > 0)
+                        ? item.resourceLinks.map(link => `<li><a href="${link}" target="_blank" class="text-blue-600 hover:text-blue-800 underline break-all">${link}</a></li>`).join('')
+                        : '<li class="text-gray-400 italic">No links provided</li>';
+
+                    const taskCard = document.createElement('div');
+                    taskCard.className = "bg-white p-5 rounded-lg border border-slate-200 shadow flex flex-col md:flex-row gap-6 justify-between items-start";
+                    
+                    taskCard.innerHTML = `
+                        <div class="flex-1 w-full space-y-4">
+                            <div>
+                                <div class="flex items-center gap-3 mb-2">
+                                    <span class="${style.text} font-black text-2xl">#${taskNumber}</span>
+                                    <h3 class="font-bold text-slate-800 text-xl">${item.milestone}</h3>
+                                    <span class="text-sm bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-semibold border">${item.month}</span>
+                                </div>
+                                <div class="inline-block bg-blue-100 text-blue-900 border border-blue-200 px-3 py-1.5 rounded-md font-bold text-sm shadow-sm">
+                                    ⚙️ App: ${item.app}
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Description</h4>
+                                <p class="text-sm text-slate-700">${item.description}</p>
+                            </div>
+
+                            <div class="bg-emerald-50 border-l-4 border-emerald-400 p-3 rounded-r-md">
+                                <h4 class="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-1">Purpose & ROI</h4>
+                                <p class="text-sm text-emerald-900">${item.purpose}</p>
+                            </div>
+
+                            <div class="bg-slate-50 p-3 rounded border border-slate-100">
+                                <div class="mb-3">
+                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Resource Tags</h4>
+                                    <div>${resourceBadges}</div>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Resource Links</h4>
+                                    <ul class="text-sm list-disc pl-4 space-y-1">${linkElements}</ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="w-full md:w-64 bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col gap-5 shrink-0">
+                            
+                            <div>
+                                <div class="flex justify-between items-end mb-1">
+                                    <span class="text-xs font-bold text-slate-500 uppercase">Success Status</span>
+                                    <span class="font-bold text-lg text-slate-700">${item.progress}%</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-3 shadow-inner">
+                                    <div class="${style.bar} h-3 rounded-full transition-all duration-500" style="width: ${item.progress}%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="border-t border-slate-200 pt-4">
+                                <span class="text-xs font-bold text-slate-500 uppercase block mb-1">Estimated Time Saved</span>
+                                <div class="flex items-baseline gap-1">
+                                    <span class="font-black text-2xl text-slate-800">${item.timeSavedVal}</span>
+                                    <span class="text-sm font-semibold text-slate-500">${item.timeSavedUnit}/mo</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-end gap-2 mt-auto pt-4">
+                                <button onclick="editMilestone(${item.id})" class="flex-1 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 py-1.5 rounded text-sm font-semibold transition">Edit</button>
+                                <button onclick="deleteMilestone(${item.id})" class="flex-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 py-1.5 rounded text-sm font-semibold transition">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                    listWrapper.appendChild(taskCard);
+                });
+                
+                section.appendChild(listWrapper);
+
+                if (teamMilestones.length > 0) {
+                    const flowContainer = document.createElement('div');
+                    flowContainer.className = "flex items-center gap-3 overflow-x-auto p-5 flowchart-container whitespace-nowrap bg-white/40 border-t border-white/50";
+                    
+                    teamMilestones.forEach((item, index) => {
+                        const taskNumber = index + 1;
+                        
+                        const node = document.createElement('div');
+                        node.className = "min-w-fit bg-white px-5 py-3 rounded-lg shadow border border-slate-200 flex flex-col items-center justify-center text-center";
+                        node.innerHTML = `
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">${item.month}</div>
+                            <div class="font-bold text-sm text-slate-800">#${taskNumber} ${item.milestone}</div>
+                            <div class="text-xs text-blue-600 font-semibold mt-1 bg-blue-50 px-2 py-0.5 rounded">${item.app}</div>
+                        `;
+                        flowContainer.appendChild(node);
+
+                        if (index < teamMilestones.length - 1) {
+                            const arrow = document.createElement('div');
+                            arrow.className = `text-2xl ${style.text} opacity-40`;
+                            arrow.innerHTML = "➔";
+                            flowContainer.appendChild(arrow);
+                        }
+                    });
+
+                    section.appendChild(flowContainer);
+                }
+
+                container.appendChild(section);
+            });
+        }
+
+        renderSections();
+    </script>
+</body>
+</html>
